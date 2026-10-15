@@ -1,0 +1,30 @@
+{
+  "name": "cineora",
+  "private": true,
+  "version": "0.5.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "dev:web": "npm run dev -w @cineora/web",
+    "dev:api": "npm run dev -w @cineora/api",
+    "dev:worker": "npm run dev:worker -w @cineora/api",
+    "db:generate": "npm run db:generate -w @cineora/api",
+    "db:migrate": "npm run db:migrate -w @cineora/api",
+    "db:deploy": "npm run db:deploy -w @cineora/api",
+    "sync:enqueue": "npm run sync:enqueue -w @cineora/api",
+    "test": "npm run test -w @cineora/api",
+    "test:offline": "node --experimental-strip-types --test tests-offline/*.test.mjs scripts/source-pipeline.test.mjs",
+    "build": "npm run build -w @cineora/api && npm run build -w @cineora/web",
+    "test:mock": "node --test tests-mocked/*.test.cjs",
+    "test:browser": "node --test scripts/browser-source.test.mjs",
+    "check:syntax": "node scripts/check-syntax.cjs",
+    "test:qa": "npm run test:offline && npm run test:mock && npm run check:syntax"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}

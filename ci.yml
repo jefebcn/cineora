@@ -1,0 +1,101 @@
+name: CINEORA - build and integration checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: cineora
+          POSTGRES_USER: cineora
+          POSTGRES_PASSWORD: ci_password_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cineora -d cineora"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+
+    env:
+      DATABASE_URL: postgresql://cineora:ci_password_only@127.0.0.1:5432/cineora?schema=public
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: '6379'
+      API_PORT: '4000'
+      API_URL: http://127.0.0.1:4000
+      WEB_ORIGIN: http://127.0.0.1:3000
+      TMDB_READ_ACCESS_TOKEN: YOUR_TMDB_V4_READ_ACCESS_TOKEN
+      ADMIN_SYNC_KEY: CICICICICICICICICICICICICICICICI
+      ENABLE_SCHEDULER: '0'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Il lockfile non è stato generato per indisponibilità del registry nell'ambiente originale.
+      # Prima del lancio fissare le versioni, generare package-lock.json e sostituire con npm ci.
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Generate Prisma client
+        run: npm run db:generate
+      - name: Run migrations against real Postgres
+        run: npm run db:deploy
+      - name: Build NestJS and Next.js
+        run: npm run build
+      - name: Unit, mock, and syntax suites
+        run: npm run test:qa && npm run test
+      - name: Install Chromium for local browser fixture test
+        run: npx playwright install --with-deps chromium
+      - name: Verify JS-rendered listing in a real browser (local fixture only)
+        run: npm run test:browser
+      - name: Launch API
+        run: |
+          npm run start -w @cineora/api > /tmp/cineora-api.log 2>&1 &
+          echo $! > /tmp/cineora-api.pid
+      - name: API smoke test against Postgres
+        run: |
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4000/api/health > /dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/healthcheck.mjs
+      - name: Launch worker and frontend
+        run: |
+          npm run worker -w @cineora/api > /tmp/cineora-worker.log 2>&1 &
+          echo $! > /tmp/cineora-worker.pid
+          npm run start -w @cineora/web > /tmp/cineora-web.log 2>&1 &
+          echo $! > /tmp/cineora-web.pid
+      - name: HTTP smoke test for frontend
+        run: |
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/ > /dev/null; then break; fi
+            sleep 2
+          done
+          curl --fail --silent http://127.0.0.1:3000/ > /dev/null
+          curl --fail --silent http://127.0.0.1:3000/film > /dev/null
+          curl --fail --silent http://127.0.0.1:3000/serie-tv > /dev/null
+          curl --fail --silent http://127.0.0.1:3000/archivio > /dev/null
+          curl --fail --silent 'http://127.0.0.1:3000/cerca?q=Luna' > /dev/null
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          tail -100 /tmp/cineora-api.log 2>/dev/null || true
+          tail -100 /tmp/cineora-worker.log 2>/dev/null || true
+          tail -100 /tmp/cineora-web.log 2>/dev/null || true

@@ -1,0 +1,39 @@
+{
+  "name": "@cineora/api",
+  "version": "0.4.0",
+  "private": true,
+  "scripts": {
+    "dev": "nest start --watch",
+    "dev:worker": "ts-node src/worker.ts",
+    "worker": "node dist/worker.js",
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "sync:enqueue": "ts-node scripts/enqueue.ts",
+    "test": "tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@nestjs/bullmq": "^11.0.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@prisma/client": "^6.0.0",
+    "bullmq": "^5.0.0",
+    "helmet": "^8.0.0",
+    "ioredis": "^5.0.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@types/node": "^22.0.0",
+    "prisma": "^6.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "ts-node": "^10.9.2"
+  }
+}

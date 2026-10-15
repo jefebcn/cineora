@@ -1,0 +1,17 @@
+{
+  "observedAt": "2026-10-15",
+  "datasetType": "featured-sections-not-latest",
+  "notice": "Titoli citati come contenuti in evidenza nella homepage e nella pagina film; non provano l'ultima aggiunta. Non importati automaticamente perché la scheda individuale non è stata verificata.",
+  "items": [
+    {
+      "title": "Spider-Man: Brand New Day",
+      "type": "movie",
+      "sourcePage": "https://streamingcommunityz.shiksha/"
+    },
+    {
+      "title": "Insidious - Fuori dall’Altrove",
+      "type": "movie",
+      "sourcePage": "https://streamingcommunityz.shiksha/it/movies"
+    }
+  ]
+}

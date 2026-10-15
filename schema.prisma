@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Title {
+  id           String      @id @default(uuid()) @db.Uuid
+  tmdbId       Int         @map("tmdb_id")
+  type         String      @db.VarChar(10)
+  slug         String      @unique
+  name         String
+  originalName String?     @map("original_name")
+  overview     String      @default("") @db.Text
+  releaseDate  DateTime?   @map("release_date") @db.Date
+  voteAverage  Float       @default(0) @map("vote_average")
+  voteCount    Int         @default(0) @map("vote_count")
+  popularity   Float       @default(0)
+  posterPath   String?     @map("poster_path")
+  backdropPath String?     @map("backdrop_path")
+  trendRank    Int?        @map("trend_rank")
+  language     String?     @db.VarChar(10)
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  genres       TitleGenre[]
+  seasons      Season[]
+  sourceObservations SourceObservation[]
+
+  @@unique([type, tmdbId])
+  @@index([type, popularity(sort: Desc)])
+  @@index([type, trendRank])
+  @@index([createdAt(sort: Desc)])
+  @@map("titles")
+}
+
+model Genre {
+  id      Int          @id
+  name    String
+  titles  TitleGenre[]
+  @@map("genres")
+}
+
+model TitleGenre {
+  titleId String @map("title_id") @db.Uuid
+  genreId Int   @map("genre_id")
+  title   Title @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  @@id([titleId, genreId])
+  @@map("title_genres")
+}
+
+model Season {
+  id           String    @id @default(uuid()) @db.Uuid
+  titleId      String    @map("title_id") @db.Uuid
+  seasonNumber Int       @map("season_number")
+  tmdbId       Int?      @map("tmdb_id")
+  name         String
+  overview     String    @default("") @db.Text
+  airDate      DateTime? @map("air_date") @db.Date
+  posterPath   String?   @map("poster_path")
+  title        Title     @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  episodes     Episode[]
+  @@unique([titleId, seasonNumber])
+  @@map("seasons")
+}
+
+model Episode {
+  id            String    @id @default(uuid()) @db.Uuid
+  seasonId      String    @map("season_id") @db.Uuid
+  episodeNumber Int       @map("episode_number")
+  name          String
+  overview      String    @default("") @db.Text
+  airDate       DateTime? @map("air_date") @db.Date
+  stillPath     String?   @map("still_path")
+  duration      Int?
+  season        Season    @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  @@unique([seasonId, episodeNumber])
+  @@map("episodes")
+}
+
+model SyncRun {
+  id         String    @id @default(uuid()) @db.Uuid
+  kind       String
+  status     String
+  processed  Int       @default(0)
+  error      String?   @db.Text
+  startedAt  DateTime  @default(now()) @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+  @@index([startedAt(sort: Desc)])
+  @@map("sync_runs")
+}
+
+/// Traccia i soli titoli per cui esiste una prova di presenza nella fonte pubblica.
+/// Non prova che il contenuto video sia disponibile o che il titolo sia appena aggiunto.
+model SourceObservation {
+  id             String   @id @default(uuid()) @db.Uuid
+  source         String   @db.VarChar(120)
+  sourceUrl      String   @unique @map("source_url")
+  titleId        String   @map("title_id") @db.Uuid
+  type           String   @db.VarChar(10)
+  datasetType    String   @map("dataset_type")
+  observedAt     DateTime @map("observed_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  title          Title    @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  @@index([source, observedAt(sort: Desc)])
+  @@index([titleId])
+  @@map("source_observations")
+}

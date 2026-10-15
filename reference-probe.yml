@@ -1,0 +1,36 @@
+name: CINEORA - manual public listing probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_right_to_access:
+        description: 'Confermo di aver verificato le condizioni di accesso e il permesso di effettuare questa lettura in sola lettura'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    if: ${{ inputs.confirm_right_to_access == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Leggi le sole schede pubbliche delle liste latest
+        run: node scripts/collect-reference-latest.mjs data/reference-latest-candidates.json
+      - name: Statistiche dell'estrazione
+        run: |
+          node --input-type=module -e 'import {readFileSync} from "node:fs";const f=JSON.parse(readFileSync("data/reference-latest-candidates.json"));console.log(JSON.stringify({observedAt:f.observedAt,movie:f.items.filter(x=>x.type==="movie").length,tv:f.items.filter(x=>x.type==="tv").length,evidence:f.evidence,note:f.note},null,2))'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cineora-reference-listing-candidates
+          path: data/reference-latest-candidates.json
+          retention-days: 7
