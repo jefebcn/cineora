@@ -48,11 +48,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      # Il lockfile non è stato generato per indisponibilità del registry nell'ambiente originale.
-      # Prima del lancio fissare le versioni, generare package-lock.json e sostituire con npm ci.
-      - name: Install dependencies
+          node-version: '22.19.0'
+      # NON impostare `cache: npm` qui: setup-node richiede
+      # package-lock.json prima ancora che npm install venga eseguito.
+      - name: Install dependencies (bootstrap lockfile)
         run: npm install --no-audit --no-fund
+      - name: Verify generated root lockfile
+        run: test -f package-lock.json
+      - name: Export generated lockfile for committing later
+        uses: actions/upload-artifact@v4
+        with:
+          name: cineora-package-lock
+          path: package-lock.json
+          retention-days: 7
       - name: Generate Prisma client
         run: npm run db:generate
       - name: Run migrations against real Postgres

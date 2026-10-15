@@ -1,0 +1,26 @@
+CINEORA — HOTFIX GitHub Actions (15 ottobre 2026)
+
+Errore segnalato:
+  Dependencies lock file is not found in /home/runner/work/cineora/cineora
+
+DIAGNOSI VERIFICATA SULLO ZIP v0.5:
+- Il progetto NON contiene package-lock.json.
+- Il file .github/workflows/ci.yml dello ZIP v0.5 NON contiene `cache: npm`.
+- Di conseguenza, il messaggio riportato è probabilmente emesso da un altro workflow GitHub (spesso node.js.yml) o da una variante modificata.
+- Senza leggere il run GitHub non possiamo identificare con certezza il workflow incriminato.
+
+SOLUZIONE IMMEDIATA SUL WORKFLOW CHE FALLISCE:
+1. Vai su GitHub -> Actions -> esecuzione fallita; annota il nome del workflow.
+2. Vai su Code -> .github/workflows/<file-del-workflow>.yml -> Edit (matita).
+3. In `actions/setup-node@v4` rimuovi `cache: npm` o `cache: 'npm'`.
+4. Se compare `npm ci`, sostituiscilo temporaneamente con `npm install --no-audit --no-fund`.
+5. Salva (Commit changes), poi Actions -> Re-run jobs.
+
+IN AGGIUNTA, per aggiornare il workflow CI fornito da CINEORA:
+- Carica il file allegato `.github/workflows/ci.yml`, sovrascrivendo l'omonimo percorso nel repository; oppure apri il file online e sostituiscine il contenuto.
+- La versione di questo hotfix NON usa la cache npm, imposta Node 22.19.0 e, dopo `npm install`, pubblica `package-lock.json` come artifact scaricabile.
+- Una volta riuscita l'installazione, scarica l'artifact `cineora-package-lock`, estrailo e carica il file `package-lock.json` nella RADICE del repository. Poi sostituisci `npm install` con `npm ci` per build riproducibili; potrai anche riabilitare la cache npm.
+
+NOTA: Il cambio workflow corregge l'errore sul lockfile, ma non dimostra che build, database o tests siano tutti corretti. Per diagnosticarli servono gli esiti dei job successivi.
+
+Non inserire mai i token TMDB, password o altre credenziali nei file GitHub pubblici.
